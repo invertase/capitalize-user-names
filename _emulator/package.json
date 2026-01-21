@@ -1,0 +1,18 @@
+{
+  "name": "firebase-extension-emulator",
+  "version": "1.0.0",
+  "description": "Firebase emulator setup for testing the capitalize-user-names extension",
+  "private": true,
+  "scripts": {
+    "emulators:start": "firebase emulators:start",
+    "emulators:exec": "firebase emulators:exec",
+    "test": "node test-script.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  }
+}
+

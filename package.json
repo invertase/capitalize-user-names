@@ -1,0 +1,17 @@
+{
+  "name": "capitalize-user-names-extension",
+  "version": "0.1.0",
+  "description": "Firebase extension that capitalizes user names",
+  "private": true,
+  "scripts": {
+    "build": "cd functions && npm run build",
+    "deploy": "firebase deploy --only extensions"
+  },
+  "keywords": [
+    "firebase",
+    "extension",
+    "firestore"
+  ],
+  "author": "",
+  "license": "Apache-2.0"
+}

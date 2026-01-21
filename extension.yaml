@@ -1,0 +1,42 @@
+specVersion: v1beta
+name: capitalize-user-names
+version: 0.1.0
+displayName: Capitalize User Names
+description: Automatically capitalizes the title, firstName, and lastName fields in user documents and creates a combined name field
+author:
+  authorName: Firebase Test
+license: Apache-2.0
+
+resources:
+  - name: capitalizeNames
+    type: firebaseextensions.v1beta.function
+    properties:
+      sourceDirectory: functions
+      location: ${param:LOCATION}
+      eventTrigger:
+        eventType: providers/cloud.firestore/eventTypes/document.write
+        resource: projects/${param:PROJECT_ID}/databases/(default)/documents/users/{userId}
+
+params:
+  - param: LOCATION
+    label: Cloud Functions Location
+    description: Where do you want to deploy the functions created for this extension?
+    type: select
+    default: us-central1
+    options:
+      - label: Iowa (us-central1)
+        value: us-central1
+      - label: South Carolina (us-east1)
+        value: us-east1
+      - label: Northern Virginia (us-east4)
+        value: us-east4
+      - label: Belgium (europe-west1)
+        value: europe-west1
+      - label: London (europe-west2)
+        value: europe-west2
+      - label: Frankfurt (europe-west3)
+        value: europe-west3
+      - label: Tokyo (asia-northeast1)
+        value: asia-northeast1
+      - label: Singapore (asia-southeast1)
+        value: asia-southeast1
