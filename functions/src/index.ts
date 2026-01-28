@@ -51,7 +51,6 @@ export function buildFullName(
   lastName: string | undefined
 ): string {
   const parts: string[] = [];
-  
   if (title) {
     parts.push(title);
   }
@@ -61,8 +60,17 @@ export function buildFullName(
   if (lastName) {
     parts.push(lastName);
   }
-  
   return parts.join(" ");
+}
+
+/**
+ * Checks if a string is already properly capitalized
+ */
+function isAlreadyCapitalized(value: string | undefined | null): boolean {
+  if (!value || typeof value !== "string" || value.length === 0) {
+    return true; // Nothing to capitalize
+  }
+  return value === capitalizeWord(value);
 }
 
 /**
@@ -76,63 +84,67 @@ export const capitalizeUserNames = functions.firestore
       context: functions.EventContext
     ) => {
       const userId = context.params.userId;
-      const data = change.after.exists ? change.after.data() : null;
+      const afterData = change.after.exists ? change.after.data() : null;
 
-      if (!data) {
+      // Document was deleted, nothing to do
+      if (!afterData) {
         return null;
       }
 
-      // Process title field
-      let capitalizedTitle: string | undefined;
-      if (data.title && typeof data.title === "string") {
-        capitalizedTitle = capitalizeWord(data.title);
+      // Check if all name fields are already in their correct capitalized form
+      const titleAlreadyCapitalized = isAlreadyCapitalized(afterData.title);
+      const firstNameAlreadyCapitalized = isAlreadyCapitalized(afterData.firstName);
+      const lastNameAlreadyCapitalized = isAlreadyCapitalized(afterData.lastName);
+
+      // Check what the full name should be
+      const expectedTitle = afterData.title ? capitalizeWord(afterData.title) : undefined;
+      const expectedFirstName = afterData.firstName ? capitalizeWord(afterData.firstName) : undefined;
+      const expectedLastName = afterData.lastName ? capitalizeWord(afterData.lastName) : undefined;
+      const expectedFullName = buildFullName(expectedTitle, expectedFirstName, expectedLastName);
+
+      // Check if the name field is already correct
+      const nameAlreadyCorrect = afterData.name === expectedFullName || 
+        (expectedFullName.trim().length === 0 && !afterData.name);
+
+      // If everything is already correct, exit early, prevents infinite loop
+      if (
+        titleAlreadyCapitalized &&
+        firstNameAlreadyCapitalized &&
+        lastNameAlreadyCapitalized &&
+        nameAlreadyCorrect
+      ) {
+        functions.logger.info(
+          `Skipping user ${userId}: all name fields already capitalized`
+        );
+        return null;
       }
 
-      // Process firstName field
-      let capitalizedFirstName: string | undefined;
-      if (data.firstName && typeof data.firstName === "string") {
-        capitalizedFirstName = capitalizeWord(data.firstName);
-      }
-
-      // Process lastName field
-      let capitalizedLastName: string | undefined;
-      if (data.lastName && typeof data.lastName === "string") {
-        capitalizedLastName = capitalizeWord(data.lastName);
-      }
-
-      // Build the full name from the capitalized parts
-      const fullName = buildFullName(
-        capitalizedTitle,
-        capitalizedFirstName,
-        capitalizedLastName
-      );
-
+      // Build the updates object with only the fields that need changing
       const updates: Record<string, any> = {};
 
-      if (capitalizedTitle !== undefined) {
-        updates.title = capitalizedTitle;
-      }
-      if (capitalizedFirstName !== undefined) {
-        updates.firstName = capitalizedFirstName;
-      }
-      if (capitalizedLastName !== undefined) {
-        updates.lastName = capitalizedLastName;
-      } else if (data.lastName === null) {
-        updates.lastName = null; // Explicitly set to null
+      if (!titleAlreadyCapitalized && expectedTitle !== undefined) {
+        updates.title = expectedTitle;
       }
 
-      if (fullName.trim().length > 0) {
-        updates.name = fullName;
+      if (!firstNameAlreadyCapitalized && expectedFirstName !== undefined) {
+        updates.firstName = expectedFirstName;
       }
 
+      if (!lastNameAlreadyCapitalized && expectedLastName !== undefined) {
+        updates.lastName = expectedLastName;
+      }
+
+      if (!nameAlreadyCorrect && expectedFullName.trim().length > 0) {
+        updates.name = expectedFullName;
+      }
+
+      // Only write if there are actual updates to make
       if (Object.keys(updates).length > 0) {
         await admin.firestore().collection("users").doc(userId).update(updates);
-
         functions.logger.info(
           `Capitalized name fields for user ${userId}: ${JSON.stringify(updates)}`
         );
       }
-      
 
       return null;
     }
