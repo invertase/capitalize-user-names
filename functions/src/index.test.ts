@@ -92,5 +92,6 @@ describe("integration: name field generation", () => {
     expect(firstName).toBe("Jacob");
     expect(lastName).toBe("Cable");
     expect(fullName).toBe("Mr Jacob Cable");
+    
   });
 });
